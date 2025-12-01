@@ -73,11 +73,11 @@ nav:
     - CLI Reference: user-guide/cli.md
     - Python API: user-guide/python-api.md
     - Data Output: user-guide/data-output.md
+    - Quality Tracking: user-guide/quality-tracking.md
     - Caching: user-guide/caching.md
   - Advanced:
     - Architecture: advanced/architecture.md
     - Processing Pipeline: advanced/pipeline.md
-    - Extending: advanced/extending.md
   - API Reference:
     - Interface: api/interface.md
     - Models: api/models.md

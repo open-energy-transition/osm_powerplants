@@ -15,37 +15,37 @@ from osm_powerplants.retrieval.regional import region_download
 config = get_config()
 cache_dir = str(get_cache_dir(config))
 
-# Example 1: Circular region around a city
-print("=== Radius Query: Valletta (Malta) 5km ===")
+# Example 1: Circular region around a wind park in Luxembourg
+print("=== Radius Query: Kehmen Wind Park Area 10km ===")
 region = {
     "type": "radius",
-    "name": "Valletta 5km",
-    "center": [35.8989, 14.5146],
-    "radius_km": 5,
+    "name": "Kehmen Area",
+    "center": [49.889, 6.018],  # Near Wandpark Kehmen Heischent
+    "radius_km": 10,
 }
 
 try:
     result = region_download(regions=region, cache_dir=cache_dir)
     if result["success"]:
-        data = result["results"]["Valletta 5km"]
+        data = result["results"]["Kehmen Area"]
         print("Raw OSM elements found:")
         print(f"  Plants: {data['plants_count']}")
         print(f"  Generators: {data['generators_count']}")
 except Exception as e:
     print(f"Error (API may be busy): {type(e).__name__}")
 
-# Example 2: Bounding box
-print("\n=== Bounding Box Query: Luxembourg City ===")
+# Example 2: Bounding box covering multiple wind parks
+print("\n=== Bounding Box Query: Luxembourg Wind Parks ===")
 bbox = {
     "type": "bbox",
-    "name": "Luxembourg City",
-    "bounds": [49.58, 6.10, 49.63, 6.15],
+    "name": "Luxembourg Wind",
+    "bounds": [49.50, 6.00, 49.95, 6.50],  # Covers several wind parks
 }
 
 try:
     result = region_download(regions=bbox, cache_dir=cache_dir, download_type="plants")
     if result["success"]:
-        data = result["results"]["Luxembourg City"]
+        data = result["results"]["Luxembourg Wind"]
         print(f"Raw plant elements: {data['plants_count']}")
 except Exception as e:
     print(f"Error: {type(e).__name__}")
@@ -53,4 +53,4 @@ except Exception as e:
 print("\n" + "=" * 50)
 print("Note: Regional queries return raw OSM element counts.")
 print("For processed power plant data, use:")
-print("  process_countries_simple(['Malta'], config, cache_dir)")
+print("  process_countries_simple(['Luxembourg'], config, cache_dir)")

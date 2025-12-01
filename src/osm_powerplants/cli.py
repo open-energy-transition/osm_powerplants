@@ -57,7 +57,12 @@ def main():
     process_parser.add_argument(
         "--force-refresh",
         action="store_true",
-        help="Force refresh from API (ignore cache)",
+        help="Force refresh from API (ignore all cache)",
+    )
+    process_parser.add_argument(
+        "--update",
+        action="store_true",
+        help="Reprocess from API cache (skip CSV cache)",
     )
 
     # Info command
@@ -84,10 +89,13 @@ def main():
 
 def run_process(args):
     """Run the process command."""
-    from .interface import process_countries_simple
+    import os
+
+    from .interface import process_countries
 
     config = get_config(args.config)
     cache_dir = get_cache_dir(config)
+    csv_cache_path = os.path.join(str(cache_dir), "osm_data.csv")
 
     if args.force_refresh:
         config["force_refresh"] = True
@@ -96,17 +104,19 @@ def run_process(args):
     logger.info(f"Cache directory: {cache_dir}")
 
     try:
-        df = process_countries_simple(
+        df = process_countries(
             countries=args.countries,
-            config=config,
+            csv_cache_path=csv_cache_path,
             cache_dir=str(cache_dir),
-            output_path=args.output,
+            update=args.update,
+            osm_config=config,
         )
 
         if df.empty:
             logger.warning("No data found for specified countries")
             sys.exit(1)
 
+        df.to_csv(args.output, index=False)
         logger.info(f"Saved {len(df)} power plants to {args.output}")
 
     except Exception as e:
@@ -116,9 +126,13 @@ def run_process(args):
 
 def run_info(args):
     """Run the info command."""
+    from .core import get_default_config_path
+
     config = get_config(args.config)
     cache_dir = get_cache_dir(config)
+    config_path = args.config or get_default_config_path()
 
+    print(f"Config file: {config_path}")
     print(f"Cache directory: {cache_dir}")
     print(f"Config loaded: {bool(config)}")
     if config:

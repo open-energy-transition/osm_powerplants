@@ -30,7 +30,7 @@ for item in sorted(os.listdir(cache_dir)):
 print("\n=== First Run ===")
 start = time.time()
 df1 = process_countries_simple(
-    countries=["Malta"],
+    countries=["Luxembourg"],
     config=config,
     cache_dir=str(cache_dir),
 )
@@ -40,7 +40,7 @@ print(f"Time: {time.time() - start:.2f}s, Plants: {len(df1)}")
 print("\n=== Second Run (Cached) ===")
 start = time.time()
 df2 = process_countries_simple(
-    countries=["Malta"],
+    countries=["Luxembourg"],
     config=config,
     cache_dir=str(cache_dir),
 )

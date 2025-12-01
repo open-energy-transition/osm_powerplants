@@ -19,31 +19,51 @@ PACKAGE_DIR = Path(__file__).parent
 CONFIG_DIR = user_config_dir("osm-powerplants")
 CACHE_DIR = user_cache_dir("osm-powerplants")
 
-# Ensure directories exist
-Path(CONFIG_DIR).mkdir(parents=True, exist_ok=True)
+# Ensure cache directory exists (config dir created only when needed)
 Path(CACHE_DIR).mkdir(parents=True, exist_ok=True)
 
 
 def get_default_config_path() -> Path:
-    """Get path to the default config file."""
-    # Check multiple locations in order of priority:
-    # 1. Project root (for development: src/osm_powerplants -> osm_powerplants -> config.yaml)
-    pkg_config = PACKAGE_DIR.parent.parent / "config.yaml"
-    if pkg_config.exists():
-        return pkg_config
+    """Get path to the default config file.
 
-    # 2. One more level up (for editable installs)
-    pkg_config_alt = PACKAGE_DIR.parent.parent.parent / "config.yaml"
-    if pkg_config_alt.exists():
-        return pkg_config_alt
-
-    # 3. User config directory
+    Search order (first found wins):
+    1. User config (~/.config/osm-powerplants/config.yaml)
+    2. Project root (for development)
+    3. Bundled in package (fallback)
+    """
+    # 1. User config directory (highest priority - user overrides)
     user_config = Path(CONFIG_DIR) / "config.yaml"
     if user_config.exists():
         return user_config
 
-    # 4. Fallback to package directory (for bundled config)
+    # 2. Project root (for development)
+    pkg_config = PACKAGE_DIR.parent.parent / "config.yaml"
+    if pkg_config.exists():
+        return pkg_config
+
+    # 3. Bundled in package (fallback for pip-installed)
     return PACKAGE_DIR / "config.yaml"
+
+
+def _ensure_user_config() -> Path:
+    """Copy bundled config to user config directory if it doesn't exist.
+
+    Returns the user config path.
+    """
+    user_config_dir = Path(CONFIG_DIR)
+    user_config = user_config_dir / "config.yaml"
+
+    if not user_config.exists():
+        # Find bundled config
+        bundled_config = PACKAGE_DIR / "config.yaml"
+        if bundled_config.exists():
+            user_config_dir.mkdir(parents=True, exist_ok=True)
+            import shutil
+
+            shutil.copy(bundled_config, user_config)
+            logger.info(f"Created user config at {user_config}")
+
+    return user_config
 
 
 def get_config(filename: str | None = None) -> dict:
@@ -53,7 +73,8 @@ def get_config(filename: str | None = None) -> dict:
     Parameters
     ----------
     filename : str, optional
-        Path to configuration file. If None, uses default location.
+        Path to configuration file. If None, uses default location
+        and ensures user config exists.
 
     Returns
     -------
@@ -63,6 +84,8 @@ def get_config(filename: str | None = None) -> dict:
     if filename is not None:
         config_path = Path(filename)
     else:
+        # Ensure user config exists (copies bundled if needed)
+        _ensure_user_config()
         config_path = get_default_config_path()
 
     if not config_path.exists():

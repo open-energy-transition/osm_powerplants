@@ -15,8 +15,6 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
-import numpy as np
-
 from osm_powerplants.enhancement.estimation import CapacityEstimator
 from osm_powerplants.enhancement.geometry import GeometryHandler
 from osm_powerplants.models import Unit
@@ -368,7 +366,7 @@ class ElementProcessor(ABC):
 
     def extract_start_date_key_from_tags(
         self, element: dict[str, Any], unit_type: str
-    ) -> str | None:
+    ) -> int | None:
         """Extract and parse start date from OSM tags.
 
         Parameters
@@ -380,14 +378,8 @@ class ElementProcessor(ABC):
 
         Returns
         -------
-        str or None
-            Standardized date string (YYYY-MM-DD format), empty string if allowed
-            missing, or None if invalid/missing
-
-        Notes
-        -----
-        Handles various date formats using fuzzy parsing. Falls back to
-        year-only dates (YYYY-01-01) when full date cannot be determined.
+        int or None
+            Year as integer, or None if invalid/missing
         """
         assert unit_type in ["plant", "generator"], "Invalid unit type"
 
@@ -411,7 +403,7 @@ class ElementProcessor(ABC):
             "missing_start_date_allowed", False
         )
         store_raw_date = ""
-        datum = ""
+        datum = None
         for key in start_date_keys:
             if key in tags:
                 if isinstance(tags[key], str):
@@ -424,11 +416,11 @@ class ElementProcessor(ABC):
                 datum = self._parse_date_string(
                     element=element, date_string=date_string
                 )
-                if datum:
+                if datum is not None:
                     return datum
                 else:
                     if missing_start_date_allowed:
-                        return ""
+                        return None
                     else:
                         self.rejection_tracker.add_rejection(
                             element=element,
@@ -439,7 +431,7 @@ class ElementProcessor(ABC):
                         return None
 
         if missing_start_date_allowed:
-            return ""
+            return None
 
         if not store_raw_date:
             self.rejection_tracker.add_rejection(
@@ -458,8 +450,10 @@ class ElementProcessor(ABC):
 
         return None
 
-    def _parse_date_string(self, element: dict[str, Any], date_string: str) -> float:
-        """Parse various date formats into standardized YYYY-MM-DD format."""
+    def _parse_date_string(
+        self, element: dict[str, Any], date_string: str
+    ) -> int | None:
+        """Parse various date formats into year as integer."""
         import re
 
         from dateutil import parser
@@ -468,7 +462,7 @@ class ElementProcessor(ABC):
             logger.warning(
                 f"Empty date string provided for plant {element['type']}/{element['id']}"
             )
-            return np.nan
+            return None
 
         date_string = date_string.strip()
 
@@ -477,43 +471,13 @@ class ElementProcessor(ABC):
             logger.warning(
                 f"No valid year found for plant {element['type']}/{element['id']} in '{date_string}'"
             )
-            return np.nan
+            return None
 
-        year = float(int(year_match.group(1)))
+        year = int(year_match.group(1))
 
         try:
             date_obj = parser.parse(date_string, fuzzy=True)
-
-            if date_string.count(str(date_obj.year)) > 0:
-                month_detected = any(
-                    m in date_string.lower()
-                    for m in [
-                        "jan",
-                        "feb",
-                        "mar",
-                        "apr",
-                        "may",
-                        "jun",
-                        "jul",
-                        "aug",
-                        "sep",
-                        "oct",
-                        "nov",
-                        "dec",
-                    ]
-                ) or re.search(r"\b\d{1,2}[/.-]\d{1,2}\b", date_string)
-
-                day_detected = re.search(r"\b\d{1,2}\b", date_string) and month_detected
-
-                if month_detected and day_detected:
-                    return float(date_obj.year)
-                elif month_detected:
-                    return float(date_obj.year)
-                else:
-                    return float(date_obj.year)
-
-            return year
-
+            return int(date_obj.year)
         except (ValueError, TypeError) as e:
             logger.warning(
                 f"Date parsing failed {element['type']}/{element['id']} in '{date_string}': {str(e)}. Using year only."

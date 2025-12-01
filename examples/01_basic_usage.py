@@ -14,11 +14,11 @@ cache_dir = get_cache_dir(config)
 
 # Process a small country (fast)
 df = process_countries_simple(
-    countries=["Malta"],
+    countries=["Luxembourg"],
     config=config,
     cache_dir=str(cache_dir),
 )
 
 # Display results
-print(f"Found {len(df)} power plants in Malta\n")
-print(df[["Name", "Fueltype", "Technology", "Capacity"]].to_string())
+print(f"Found {len(df)} power plants in Luxembourg\n")
+print(df[["Name", "Fueltype", "Technology", "Capacity"]].head(10).to_string())
